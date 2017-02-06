@@ -1,0 +1,6 @@
+framework module SeetaFaceDetectSDK {
+  umbrella header "SeetaFaceDetectSDK.h"
+
+  export *
+  module * { export * }
+}

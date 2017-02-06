@@ -27,7 +27,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
-    self.faceDetector = [[FJFaceDetector alloc] initWithCameraView:_cameraView scale:2.0];
+    self.faceDetector = [[FJFaceDetector alloc] initWithCameraView:_cameraView scale:4.0];
     self.tapGestureRecognizer = [[UITapGestureRecognizer alloc]
                                  initWithTarget:self
                                  action:@selector(handleTap:)];

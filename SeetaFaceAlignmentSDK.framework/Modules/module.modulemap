@@ -1,0 +1,6 @@
+framework module SeetaFaceAlignmentSDK {
+  umbrella header "SeetaFaceAlignmentSDK.h"
+
+  export *
+  module * { export * }
+}

@@ -1,0 +1,6 @@
+framework module KCFTrackerSDK {
+  umbrella header "KCFTrackerSDK.h"
+
+  export *
+  module * { export * }
+}

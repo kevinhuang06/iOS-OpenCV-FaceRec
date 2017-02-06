@@ -1,0 +1,37 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++5B3FA83",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++1A3124D" : 9223372036854775807,
+    "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++5B3FA83" : 9223372036854775807,
+    "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++838351C" : 9223372036854775807
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "75E6F2B6-9784-4136-BEAC-A7DFDB3DA407",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++1A3124D" : "..",
+    "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++5B3FA83" : "iOS-OpenCV-FaceRec\/",
+    "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++838351C" : ".."
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "iOS-OpenCV-FaceRec",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "iOS-OpenCV-FaceRec.xcworkspace",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/kevinhuang06\/iOS-OpenCV-FaceRec",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++1A3124D"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/kevinhuang06\/iOS-OpenCV-FaceRec",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++5B3FA83"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/objcio\/issue-21-OpenCV-FaceRec",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "0D47EF24FC2AFB8F20D7E920E46A35D4C43A8E70+++838351C"
+    }
+  ]
+}
