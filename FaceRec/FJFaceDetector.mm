@@ -23,6 +23,10 @@ using namespace cv;
 #define MULTISCALE true
 #define LAB false
 
+#define TRACK_TH_POS 0.4
+#define TRACK_TH_SCALE 2.5
+#define RESET 10*15
+
 @interface FJFaceDetector () {
     
     CascadeClassifier _faceDetector;
@@ -132,8 +136,8 @@ using namespace cv;
 
 
 - (void)processImage:(cv::Mat&)image {
-  // Do some OpenCV stuff with the image
-  //[self detectAndDrawFacesSeetaOn:image scale:_scale];
+    // Do some OpenCV stuff with the image
+    //[self detectAndDrawFacesSeetaOn:image scale:_scale];
     [self detectAndTrackFacesOn:image scale:_scale];
 }
 
@@ -150,8 +154,8 @@ using namespace cv;
         CV_RGB(255,255,0),
         CV_RGB(255,0,0),
         CV_RGB(255,0,255)} ;
+
     Mat gray, smallImg( cvRound (img.rows/scale), cvRound(img.cols/scale), CV_8UC1 );
-    
     cvtColor( img, gray, COLOR_BGR2GRAY );
     resize( gray, smallImg, smallImg.size(), 0, 0, INTER_LINEAR );
     equalizeHist( smallImg, smallImg );
@@ -302,163 +306,178 @@ using namespace cv;
     
 }
 
+- (void)cvRect:(cv::Rect &)cv_rect toSeetaRect:(seeta::Rect &)seeta_rect
+{
+    seeta_rect.x = cv_rect.x;
+    seeta_rect.y = cv_rect.y;
+    seeta_rect.width = cv_rect.width;
+    seeta_rect.height = cv_rect.height;
+}
+
+- (void)seetaRect:(seeta::Rect &)seeta_rect toCvRect:(cv::Rect &)cv_rect
+{
+    cv_rect.x = seeta_rect.x;
+    cv_rect.y = seeta_rect.y;
+    cv_rect.width = seeta_rect.width;
+    cv_rect.height =seeta_rect.height;
+}
+
+- (bool)checkBoudary:(cv::Rect &) cv_rect inImg:(Mat &)img
+{
+    if(cv_rect.x>0 and cv_rect.y>0 and (cv_rect.width+cv_rect.x)<img.cols \
+       and (cv_rect.height+cv_rect.y)< img.rows) {
+        return true;
+    }else{
+        return false;
+    }
+}
+
+- (bool)checkTracker:(KCFTracker &)_tracker
+{
+    if(_tracker.value < TRACK_TH_POS || _tracker.value_scale < TRACK_TH_SCALE
+       || (_frameindex > RESET && (RESET >= 0)))
+        return true;
+    else
+        return false;
+}
+
+- (void)putText:(Mat &)img useTracker:(bool)use_tracker
+{
+    if (use_tracker){
+        putText(img, "Tracking..", cv::Point(100,100),CV_FONT_HERSHEY_SIMPLEX,1,cv::Scalar(128,128,128),4);
+    }else{
+        putText(img, "Detecting..", cv::Point(100,100),CV_FONT_HERSHEY_SIMPLEX,1,cv::Scalar(128,128,128),4);
+    }
+}
+
 - (void)detectAndTrackFacesOn:(Mat&) img scale:(double) scale
 {
-    int i = 0;
+    
     double tDetect,tAlign;
     
-    const static Scalar colors[] =  {
-        CV_RGB(255,0,0),
-        CV_RGB(0,255,255),
-        CV_RGB(0,0,255),
-        CV_RGB(0,255,0),
-        CV_RGB(255,128,0),
-        CV_RGB(255,255,0),
-        CV_RGB(255,0,0),
-        CV_RGB(255,0,255)} ;
-    
-    
-    Mat gray, smallImg( cvRound (img.rows/scale), cvRound(img.cols/scale), CV_8UC1 );
-    cvtColor( img, gray, COLOR_BGR2GRAY );
+    Mat img_4detect;
+    cv::transpose(img, img_4detect);
+    Mat gray, smallImg( cvRound (img_4detect.rows/scale), cvRound(img_4detect.cols/scale), CV_8UC1 );
+    cvtColor( img_4detect, gray, COLOR_BGR2GRAY );
     resize( gray, smallImg, smallImg.size(), 0, 0, INTER_LINEAR );
     equalizeHist( smallImg, smallImg );
     
     //data for tracker
-    Mat smallImgColor( cvRound (img.rows/scale), cvRound(img.cols/scale), CV_8UC3 );
-    resize( img, smallImgColor, smallImgColor.size(), 0, 0, INTER_LINEAR );
+    Mat smallImgColor( cvRound (img_4detect.rows/scale), cvRound(img_4detect.cols/scale), CV_8UC3 );
+    resize( img_4detect, smallImgColor, smallImgColor.size(), 0, 0, INTER_LINEAR );
     cvtColor(smallImgColor, smallImgColor, COLOR_BGRA2BGR);
     
-    Mat BGRImage(img.rows, img.cols, CV_8UC3 );
-    cvtColor(img, BGRImage, COLOR_BGRA2BGR);
+    Mat BGRImage(img_4detect.rows, img_4detect.cols, CV_8UC3 );
+    cvtColor(img_4detect, BGRImage, COLOR_BGRA2BGR);
     
-    assert(smallImgColor.cols == smallImg.cols);
-    assert(smallImgColor.rows == smallImg.rows);
     //CvScalar scal = cvGet2D(img.data, 0, 0);
     //CvScalar scal3channel = cvGet2D(smallImgColor.data, 0, 0);
-   
+    
     seeta::ImageData img_data;
     img_data.data = smallImg.data;
     img_data.width = smallImg.cols;
     img_data.height = smallImg.rows;
     img_data.num_channels = 1;
+    
     std::vector<seeta::FaceInfo> faces;
     vector<cv::Rect> localFaceRects;
-
+    
     if (_use_tracker){
-        KCFTracker _tracker = _trackers[0];
-        _frameindex += 1;
-        tDetect= cv::getTickCount();
-        printf("tracker roi:%f, %f, %f, %f \n",_tracker._roi.x,_tracker._roi.y,_tracker._roi.width,_tracker._roi.height );
-        cv::Rect face_rect = _tracker.update(smallImgColor);
-        tDetect = cv::getTickCount() - tDetect;
-        localFaceRects.push_back(face_rect);
-        //printf( "tracking frameindex:%d time = %g ms\n", _frameindex, tDetect/((double)cvGetTickFrequency()*1000.) );
-        IplImage u = img;
         
-        seeta::FaceInfo f;
-        f.bbox.x = face_rect.x;
-        f.bbox.y = face_rect.y;
-        f.bbox.width = face_rect.width;
-        f.bbox.height = face_rect.height;
-        faces.push_back(f);
-        _use_tracker_color = true;
-        const float TRACK_TH_POS = 0.4;
-        const float TRACK_TH_SCALE = 2.5;
-        const float RESET = 10*15;
-        if (_tracker.value < TRACK_TH_POS || _tracker.value_scale < TRACK_TH_SCALE
-            || (_frameindex > RESET && (RESET >= 0))) {
-            _use_tracker = false;
-            faces.clear();
-            _trackers.clear();
-            localFaceRects.clear();
-            printf("fail track %f, %f, %f, %d, wdith:%d, height:%d\n", _tracker.value, _tracker.value_scale,_tracker.currentScaleFactor, _frameindex,smallImgColor.cols,smallImgColor.rows);
-        }else{
-           
-            printf("tracker_value,values_cale:%f,%f, tracker_scale:%f, id:%d,x:%d,y:%d,w:%d,h:%d\n",
-                   _tracker.value, _tracker.value_scale, _tracker.currentScaleFactor, _frameindex,
-                   face_rect.x,face_rect.y, face_rect.width,face_rect.height);
+        _frameindex += 1;
+        int32_t num_tracker = static_cast<int32_t>(_trackers.size());
+        
+        for(int32_t i=0; i<num_tracker; i++){
+            
+            KCFTracker& _tracker = _trackers[i];
+            
+            tDetect= cv::getTickCount();
+            cv::Rect face_rect = _tracker.update(smallImgColor);
+            tDetect = cv::getTickCount() - tDetect;
+            printf( "tracking time = %g ms\n", tDetect/((double)cvGetTickFrequency()*1000.) );
+            
+            _use_tracker_color = true;
+            localFaceRects.push_back(face_rect);
+            
+            if([self checkTracker:_tracker]){
+                _use_tracker = false;
+                _trackers.clear();
+                _use_tracker_color = false;
+                localFaceRects.clear();
+                printf("fail track %f, %f, %f, %d, wdith:%d, height:%d\n", _tracker.value, _tracker.value_scale,_tracker.currentScaleFactor, _frameindex,smallImgColor.cols,smallImgColor.rows);
+                break;
+            }
         }
     }
+    
     if (!_use_tracker){ //use detector
         tDetect= cv::getTickCount();
         faces = _seetaFaceDetector->Detect(img_data);
         tDetect = cv::getTickCount() - tDetect;
         //printf( "detection time = %g ms\n", tDetect/((double)cvGetTickFrequency()*1000.) );
-        putText(BGRImage, "Detecting..", cv::Point(100,100),CV_FONT_HERSHEY_SIMPLEX,1,cv::Scalar(128,128,128),4);
-
         
         int32_t num_face = static_cast<int32_t>(faces.size());
         for (int32_t i = 0; i < num_face; i++) {
             cv::Rect face_rect;
-            face_rect.x = faces[i].bbox.x;
-            face_rect.y = faces[i].bbox.y;
-            face_rect.width = faces[i].bbox.width;
-            face_rect.height = faces[i].bbox.height;
-            
-            if(face_rect.x>0 and face_rect.y>0 and (face_rect.width+face_rect.x)<smallImg.cols  and (face_rect.height+face_rect.y)< smallImg.rows){
+            [self seetaRect:faces[i].bbox toCvRect:face_rect];
+            if ([self checkBoudary:face_rect inImg:smallImg]){
+                
+                KCFTracker _tracker(true, true, true, false);
+                _tracker.init( face_rect, smallImgColor );
+                _trackers.push_back(_tracker);
+                
                 localFaceRects.push_back(face_rect);
-                printf("detection: scale:%f,x:%d,y:%d,w:%d,h:%d,imgw:%d,imgh:%d\n",scale,face_rect.x,face_rect.y, face_rect.width,face_rect.height,smallImg.cols,smallImg.rows);
             }
-            // cv::rectangle(img, face_rect, CV_RGB(0, 0, 255), 4, 8, 0);
         }
-        if (localFaceRects.size() > 0){
-            cv::Rect face_rect;
-            face_rect.x = faces[0].bbox.x;
-            face_rect.y = faces[0].bbox.y;
-            face_rect.width = faces[0].bbox.width;
-            face_rect.height = faces[0].bbox.height;
-            KCFTracker _tracker(true, true, true, false);
-            _tracker.init( face_rect, smallImgColor );
-            _trackers.push_back(_tracker);
-            printf("init tracker...... %lu faces\n",faces.size());
-            
+        
+        if (_trackers.size() > 0){
+            printf("init tracker......detect %lu faces\n",faces.size());
             _use_tracker = true;
             _frameindex = 0;
-            _use_tracker_color = false;
         }
     }
-    
-    
-    vector<cv::Mat> faceImages;
-  
-    for( vector<cv::Rect>::const_iterator r = localFaceRects.begin(); r != localFaceRects.end(); r++, i++ )
-    {
-        cv::Mat smallImgROI;
-        cv::Point center;
-        Scalar color = colors[0];
-        vector<cv::Rect> nestedObjects;
+    //Alignment
+    int32_t num_face = static_cast<int32_t>(localFaceRects.size());
+    for (int32_t i = 0; i < num_face; i++) {
         
-        if (_use_tracker_color){
-            color = CV_RGB(0,0,255);
-            putText(BGRImage, "Tracking..", cv::Point(100,100),CV_FONT_HERSHEY_SIMPLEX,1,cv::Scalar(128,128,128),4);
-        }
-        rectangle(BGRImage,
-                  cvPoint(cvRound(r->x*scale), cvRound(r->y*scale)),
-                  cvPoint(cvRound((r->x + r->width-1)*scale), cvRound((r->y + r->height-1)*scale)),
-                  color, 4, 8, 0);
-        //printf("color %f,%f,%f\n", color[0],color[1],color[2]);
-        //eye detection is pretty low accuracy
-        //        if( self->eyesDetector.empty() )
-        //            continue;
-        //
-        //smallImgROI = smallImg(*r);
-        
-        //faceImages.push_back(smallImgROI.clone());
-    }
-    
-    if (localFaceRects.size() > 0){
         seeta::FacialLandmark points[5];
+        seeta::FaceInfo f;
+        [self cvRect:localFaceRects[i] toSeetaRect:f.bbox];
         tAlign= cv::getTickCount();
-        _seetaFaceAlignment->PointDetectLandmarks(img_data, faces[0], points);
+        _seetaFaceAlignment->PointDetectLandmarks(img_data, f, points);
         tAlign = cv::getTickCount() - tAlign;
-        //printf( "Alignment time = %g ms\n", tAlign/((double)cvGetTickFrequency()*1000.) );
+        printf( "Alignment time = %g ms\n", tAlign/((double)cvGetTickFrequency()*1000.) );
         
         for (int i = 0; i<5; i++){
             cv::circle(BGRImage, cvPoint(points[i].x*scale, points[i].y*scale), 4, CV_RGB(0, 255, 0), CV_FILLED);
         }
     }
-    cvtColor(BGRImage, img,COLOR_BGR2BGRA);
+    
+    
+    //draw box and align-point
+    for( vector<cv::Rect>::const_iterator r = localFaceRects.begin(); r != localFaceRects.end(); r++ )
+    {
+        cv::Mat smallImgROI;
+        cv::Point center;
+        Scalar color;
+        vector<cv::Rect> nestedObjects;
+        
+        if (_use_tracker_color){
+            color = CV_RGB(0, 0, 255);
+        }else{
+            color = CV_RGB(255, 0, 0);
+        }
+        rectangle(BGRImage,
+                  cvPoint(cvRound(r->x*scale), cvRound(r->y*scale)),
+                  cvPoint(cvRound((r->x + r->width-1)*scale), cvRound((r->y + r->height-1)*scale)),
+                  color, 4, 8, 0);
+    }
+    
+    cvtColor(BGRImage, img_4detect,COLOR_BGR2BGRA);
+    cv::transpose(img_4detect,img);
+    [self putText:img useTracker:_use_tracker_color];
     @synchronized(self) {
+        vector<cv::Mat> faceImages;
         self->_faceImgs = faceImages;
     }
     
