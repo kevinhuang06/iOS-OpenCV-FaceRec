@@ -37,9 +37,12 @@ using namespace cv;
     seeta::FaceAlignment *_seetaFaceAlignment;
     ldmarkmodel _sdmAlignment;
     vector<KCFTracker> _trackers;
+    std::vector<cv::Vec3d> _face_poses;
     
     vector<cv::Rect> _faceRects;
     vector<cv::Mat> _faceImgs;
+
+
     bool _use_tracker;
     bool _use_tracker_color;
     bool _use_sdm_alignment;
@@ -151,7 +154,10 @@ using namespace cv;
 - (void)processImage:(cv::Mat&)image {
     // Do some OpenCV stuff with the image
     //[self detectAndDrawFacesSeetaOn:image scale:_scale];
-    [self detectAndTrackFacesOn:image scale:_scale];
+    //[self detectAndTrackFacesOn:image scale:_scale];
+    [self detectTrackTiltFaceOn:image scale:_scale];
+    
+    
 }
 
 - (void)detectAndDrawFacesOn:(Mat&) img scale:(double) scale
@@ -532,6 +538,191 @@ using namespace cv;
     }
     
 }
+- (void)detectTrackTiltFaceOn:(Mat&) img scale:(double) scale
+{
+    
+    double tDetect,tAlign;
+    
+    cv::Rect face_box;
+    cv::Vec3d pose;
+    
+    Mat img_4detect;
+    cv::transpose(img, img_4detect);
+    Mat gray, smallImg( cvRound (img_4detect.rows/scale), cvRound(img_4detect.cols/scale), CV_8UC1 );
+    cvtColor( img_4detect, gray, COLOR_BGR2GRAY );
+    resize( gray, smallImg, smallImg.size(), 0, 0, INTER_LINEAR );
+    equalizeHist( smallImg, smallImg );
+    
+    //data for tracker
+    Mat smallImgColor( cvRound (img_4detect.rows/scale), cvRound(img_4detect.cols/scale), CV_8UC3 );
+    resize( img_4detect, smallImgColor, smallImgColor.size(), 0, 0, INTER_LINEAR );
+    cvtColor(smallImgColor, smallImgColor, COLOR_BGRA2BGR);
+    
+    Mat BGRImage(img_4detect.rows, img_4detect.cols, CV_8UC3 );
+    cvtColor(img_4detect, BGRImage, COLOR_BGRA2BGR);
+    
+    //CvScalar scal = cvGet2D(img.data, 0, 0);
+    //CvScalar scal3channel = cvGet2D(smallImgColor.data, 0, 0);
+    
+    seeta::ImageData img_data;
+    img_data.data = smallImg.data;
+    img_data.width = smallImg.cols;
+    img_data.height = smallImg.rows;
+    img_data.num_channels = 1;
+    
+    std::vector<seeta::FaceInfo> faces;
+    vector<cv::Rect> localFaceRects;
+    
+    if (_use_tracker){
+        
+        _frameindex += 1;
+        int32_t num_tracker = static_cast<int32_t>(_trackers.size());
+        
+        for(int32_t i=0; i<num_tracker; i++){
+            
+            KCFTracker& _tracker = _trackers[i];
+            
+            tDetect= cv::getTickCount();
+            cv::Rect face_rect = _tracker.update(smallImgColor);
+            tDetect = cv::getTickCount() - tDetect;
+            printf( "tracking time = %g ms\n", tDetect/((double)cvGetTickFrequency()*1000.) );
+            
+            _use_tracker_color = true;
+            localFaceRects.push_back(face_rect);
+            
+            if([self checkTracker:_tracker]){
+                _use_tracker = false;
+                _trackers.clear();
+                _face_poses.clear();
+                _use_tracker_color = false;
+                localFaceRects.clear();
+                printf("fail track %f, %f, %f, %d, wdith:%d, height:%d\n", _tracker.value, _tracker.value_scale,_tracker.currentScaleFactor, _frameindex,smallImgColor.cols,smallImgColor.rows);
+                break;
+            }
+        }
+    }
+    
+    if (!_use_tracker){ //use detector
+        tDetect= cv::getTickCount();
+        faces = _seetaFaceDetector->Detect(img_data);
+        tDetect = cv::getTickCount() - tDetect;
+        //printf( "detection time = %g ms\n", tDetect/((double)cvGetTickFrequency()*1000.) );
+        
+        int32_t num_face = static_cast<int32_t>(faces.size());
+        for (int32_t i = 0; i < num_face; i++) {
+            cv::Rect face_rect;
+            [self seetaRect:faces[i].bbox toCvRect:face_rect];
+            if ([self checkBoudary:face_rect inImg:smallImg]){
+                
+                KCFTracker _tracker(true, true, true, false);
+                _tracker.init( face_rect, smallImgColor );
+                _trackers.push_back(_tracker);
+                
+                localFaceRects.push_back(face_rect);
+                cv::Vec3d po;
+                _face_poses.push_back(po);
+            }
+        }
+        
+        if (_trackers.size() > 0){
+            printf("init tracker......detect %lu faces\n",faces.size());
+            _use_tracker = true;
+            _frameindex = 0;
+        }
+    }
+    //Alignment
+    
+    int32_t num_face = static_cast<int32_t>(localFaceRects.size());
+    
+    for (int32_t i = 0; i < num_face; i++) {
+        
+        if(_use_sdm_alignment){
+            Mat current_shape;
+            if (_frameindex>0){
+                Mat  grayImage, rot, map_matrix;
+                rot = ImgRotate(smallImgColor, map_matrix, _face_poses[i][2]);
+                // convert to gray image
+                face_box = localFaceRects[i];
+                cv::cvtColor(rot, grayImage, CV_BGR2GRAY);
+                cv::Point pt_center_input(face_box.x + face_box.width / 2, face_box.y + face_box.height / 2);
+                cv::Point pt_center_output = GetPointPosition(map_matrix, pt_center_input);
+                cv::Rect box_output(pt_center_output.x - face_box.width / 2, pt_center_output.y - face_box.height / 2, face_box.width, face_box.height);
+                
+                // alignment
+                tAlign= cv::getTickCount();
+                current_shape = [self sdmAlignment:grayImage face_rect:box_output];
+                tAlign = cv::getTickCount() - tAlign;
+                printf( "SDM Alignment time = %g ms\n", tAlign/((double)cvGetTickFrequency()*1000.) );
+                /*   */
+                ImgRotate2(rot, map_matrix, -_face_poses[i][2], smallImgColor);
+                // inverse rotation current_shape
+                int numLandmarks = current_shape.cols / 2;
+                for (int index = 0; index < numLandmarks; index++) {
+                    int x = current_shape.at<float>(index);
+                    int y = current_shape.at<float>(index + numLandmarks);
+                    cv::Point pt = GetPointPosition(map_matrix, cv::Point(x, y));
+                    current_shape.at<float>(index) = pt.x;
+                    current_shape.at<float>(index + numLandmarks) = pt.y;
+                }
+            }else{
+                tAlign= cv::getTickCount();
+                current_shape = [self sdmAlignment:smallImg face_rect:localFaceRects[i]];
+                tAlign = cv::getTickCount() - tAlign;
+            }
+            // estimate pose
+            _sdmAlignment.EstimateHeadPose(current_shape, pose);
+            _face_poses[i][0] = pose[0];
+            _face_poses[i][1] = pose[1];
+            _face_poses[i][2] = pose[2];
+            
+            [self scaleShape:scale shape:current_shape];
+            [self DrawFacialPoint:BGRImage shape:current_shape color:CV_RGB(255, 0, 0)];
+            
+        }else{
+            seeta::FacialLandmark points[5];
+            seeta::FaceInfo f;
+            [self cvRect:localFaceRects[i] toSeetaRect:f.bbox];
+            tAlign= cv::getTickCount();
+            _seetaFaceAlignment->PointDetectLandmarks(img_data, f, points);
+            tAlign = cv::getTickCount() - tAlign;
+            printf( "Alignment time = %g ms\n", tAlign/((double)cvGetTickFrequency()*1000.) );
+            
+            for (int i = 0; i<5; i++){
+                cv::circle(BGRImage, cvPoint(points[i].x*scale, points[i].y*scale), 4, CV_RGB(0, 255, 0), CV_FILLED);
+            }
+        }
+    }
+    
+    
+    //draw box and align-point
+    for( vector<cv::Rect>::const_iterator r = localFaceRects.begin(); r != localFaceRects.end(); r++ )
+    {
+        cv::Mat smallImgROI;
+        cv::Point center;
+        Scalar color;
+        vector<cv::Rect> nestedObjects;
+        
+        if (_use_tracker_color){
+            color = CV_RGB(0, 255, 0);
+        }else{
+            color = CV_RGB(0, 0, 255);
+        }
+        rectangle(BGRImage,
+                  cvPoint(cvRound(r->x*scale), cvRound(r->y*scale)),
+                  cvPoint(cvRound((r->x + r->width-1)*scale), cvRound((r->y + r->height-1)*scale)),
+                  color, 4, 8, 0);
+    }
+    
+    cvtColor(BGRImage, img_4detect,COLOR_BGR2BGRA);
+    cv::transpose(img_4detect,img);
+    [self putText:img useTracker:_use_tracker_color];
+    @synchronized(self) {
+        vector<cv::Mat> faceImages;
+        self->_faceImgs = faceImages;
+    }
+    
+}
+
 @end
 
 
