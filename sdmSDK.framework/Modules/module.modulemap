@@ -1,0 +1,6 @@
+framework module sdmSDK {
+  umbrella header "sdmSDK.h"
+
+  export *
+  module * { export * }
+}

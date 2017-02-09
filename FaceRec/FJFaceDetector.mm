@@ -16,6 +16,9 @@
 #import <SeetaFaceDetectSDK/SeetaFaceDetectSDK.h>
 #import <SeetaFaceAlignmentSDK/SeetaFaceAlignmentSDK.h>
 #import <KCFTrackerSDK/KCFTrackerSDK.h>
+#import <sdmSDK/sdmSDK.h>
+#import "util.h"
+
 using namespace cv;
 
 #define HOG true
@@ -32,12 +35,14 @@ using namespace cv;
     CascadeClassifier _faceDetector;
     seeta::FaceDetection *_seetaFaceDetector;
     seeta::FaceAlignment *_seetaFaceAlignment;
+    ldmarkmodel _sdmAlignment;
     vector<KCFTracker> _trackers;
     
     vector<cv::Rect> _faceRects;
     vector<cv::Mat> _faceImgs;
     bool _use_tracker;
     bool _use_tracker_color;
+    bool _use_sdm_alignment;
     unsigned int _frameindex;
 }
 
@@ -85,15 +90,23 @@ using namespace cv;
         //seetaFaceAlignment
         NSString * alignmentModelPath = [[NSBundle mainBundle] pathForResource:@"seeta_fa_v1.1"
                                                                         ofType:@"bin"];
-        
         char * alignmentModelPathChar = (char *) malloc(PATH_NAME_LEN);
         CFStringGetFileSystemRepresentation( (CFStringRef)alignmentModelPath, alignmentModelPathChar, PATH_NAME_LEN);
         
         _seetaFaceAlignment = new seeta::FaceAlignment(alignmentModelPathChar);
         free(alignmentModelPathChar);
+        //sdm Alignment
+        NSString * sdmAlignmentModelPath = [[NSBundle mainBundle] pathForResource:@"roboman-landmark-model"
+                                                                           ofType:@"bin"];
+        char * sdmAlignmentModelPathChar = (char *) malloc(PATH_NAME_LEN);
+        CFStringGetFileSystemRepresentation( (CFStringRef)sdmAlignmentModelPath, sdmAlignmentModelPathChar, PATH_NAME_LEN);
+        load_ldmarkmodel(sdmAlignmentModelPathChar, _sdmAlignment);
+        free(sdmAlignmentModelPathChar);
+        
         //KCF tracker
         _use_tracker = false;
         _use_tracker_color = false;
+        _use_sdm_alignment = true;
         _frameindex = 0;
     }
     
@@ -154,7 +167,7 @@ using namespace cv;
         CV_RGB(255,255,0),
         CV_RGB(255,0,0),
         CV_RGB(255,0,255)} ;
-
+    
     Mat gray, smallImg( cvRound (img.rows/scale), cvRound(img.cols/scale), CV_8UC1 );
     cvtColor( img, gray, COLOR_BGR2GRAY );
     resize( gray, smallImg, smallImg.size(), 0, 0, INTER_LINEAR );
@@ -350,6 +363,31 @@ using namespace cv;
     }
 }
 
+- (void) DrawFacialPoint:(Mat &)img shape:(Mat &)shape color:(Scalar)color
+{
+    int numLandmarks = shape.cols / 2;
+    for (int index = 0; index < numLandmarks; index++) {
+        int x = shape.at<float>(index);
+        int y = shape.at<float>(index + numLandmarks);
+        cv::circle(img, cv::Point(x, y), 4, color, -1);
+    }
+}
+
+- (Mat)sdmAlignment:(Mat&)gray face_rect:(cv::Rect &)face_rect
+{
+    Mat current_shape;
+    current_shape = align_mean(_sdmAlignment.getMeanShape(), face_rect);
+    _sdmAlignment.FaceAlignment(current_shape, face_rect, gray);
+    return current_shape;
+}
+
+- (void)scaleShape:(double)scale shape:(Mat &)shape
+{
+    for(int32_t i=0; i<shape.cols; i++){
+        shape.at<float>(i) = shape.at<float>(i) * scale;
+    }
+}
+
 - (void)detectAndTrackFacesOn:(Mat&) img scale:(double) scale
 {
     
@@ -437,19 +475,31 @@ using namespace cv;
         }
     }
     //Alignment
+    
     int32_t num_face = static_cast<int32_t>(localFaceRects.size());
+    
     for (int32_t i = 0; i < num_face; i++) {
         
-        seeta::FacialLandmark points[5];
-        seeta::FaceInfo f;
-        [self cvRect:localFaceRects[i] toSeetaRect:f.bbox];
-        tAlign= cv::getTickCount();
-        _seetaFaceAlignment->PointDetectLandmarks(img_data, f, points);
-        tAlign = cv::getTickCount() - tAlign;
-        printf( "Alignment time = %g ms\n", tAlign/((double)cvGetTickFrequency()*1000.) );
-        
-        for (int i = 0; i<5; i++){
-            cv::circle(BGRImage, cvPoint(points[i].x*scale, points[i].y*scale), 4, CV_RGB(0, 255, 0), CV_FILLED);
+        if(_use_sdm_alignment){
+            tAlign= cv::getTickCount();
+            Mat current_shape = [self sdmAlignment:smallImg face_rect:localFaceRects[i]];
+            tAlign = cv::getTickCount() - tAlign;
+            printf( "SDM Alignment time = %g ms\n", tAlign/((double)cvGetTickFrequency()*1000.) );
+            [self scaleShape:scale shape:current_shape];
+            [self DrawFacialPoint:BGRImage shape:current_shape color:CV_RGB(255, 0, 0)];
+            
+        }else{
+            seeta::FacialLandmark points[5];
+            seeta::FaceInfo f;
+            [self cvRect:localFaceRects[i] toSeetaRect:f.bbox];
+            tAlign= cv::getTickCount();
+            _seetaFaceAlignment->PointDetectLandmarks(img_data, f, points);
+            tAlign = cv::getTickCount() - tAlign;
+            printf( "Alignment time = %g ms\n", tAlign/((double)cvGetTickFrequency()*1000.) );
+            
+            for (int i = 0; i<5; i++){
+                cv::circle(BGRImage, cvPoint(points[i].x*scale, points[i].y*scale), 4, CV_RGB(0, 255, 0), CV_FILLED);
+            }
         }
     }
     
@@ -463,9 +513,9 @@ using namespace cv;
         vector<cv::Rect> nestedObjects;
         
         if (_use_tracker_color){
-            color = CV_RGB(0, 0, 255);
+            color = CV_RGB(0, 255, 0);
         }else{
-            color = CV_RGB(255, 0, 0);
+            color = CV_RGB(0, 0, 255);
         }
         rectangle(BGRImage,
                   cvPoint(cvRound(r->x*scale), cvRound(r->y*scale)),

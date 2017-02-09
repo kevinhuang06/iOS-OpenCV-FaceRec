@@ -20,8 +20,11 @@
 		8710183D1A841928000CEDBD /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 8710182E1A841928000CEDBD /* main.m */; };
 		8710183E1A841928000CEDBD /* UIImage+OpenCV.mm in Sources */ = {isa = PBXBuildFile; fileRef = 871018301A841928000CEDBD /* UIImage+OpenCV.mm */; };
 		8710183F1A841928000CEDBD /* FJLiveCameraViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 871018321A841928000CEDBD /* FJLiveCameraViewController.m */; };
+		CC09542E1E4C26400091BCC3 /* util.mm in Sources */ = {isa = PBXBuildFile; fileRef = CC09542D1E4C26400091BCC3 /* util.mm */; };
 		CC30F3631E486DB4008157CB /* KCFTrackerSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC30F3621E486DB4008157CB /* KCFTrackerSDK.framework */; };
 		CC30F3651E486E16008157CB /* KCFTrackerSDK.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CC30F3621E486DB4008157CB /* KCFTrackerSDK.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		CC30F4C21E4B0FD4008157CB /* sdmSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC30F4C11E4B0FD4008157CB /* sdmSDK.framework */; };
+		CC30F4C61E4B1603008157CB /* roboman-landmark-model.bin in Resources */ = {isa = PBXBuildFile; fileRef = CC30F4C51E4B1603008157CB /* roboman-landmark-model.bin */; };
 		CC7BD2EB1E3097B1005900E6 /* SeetaFaceDetectSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC7BD2EA1E3097B1005900E6 /* SeetaFaceDetectSDK.framework */; };
 		CC7BD2ED1E3097CC005900E6 /* SeetaFaceDetectSDK.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CC7BD2EA1E3097B1005900E6 /* SeetaFaceDetectSDK.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CC7BD2F51E30A248005900E6 /* seeta_fd_frontal_v1.0.bin in Resources */ = {isa = PBXBuildFile; fileRef = CC7BD2F41E30A248005900E6 /* seeta_fd_frontal_v1.0.bin */; };
@@ -73,7 +76,12 @@
 		871018321A841928000CEDBD /* FJLiveCameraViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FJLiveCameraViewController.m; sourceTree = "<group>"; };
 		872C48E71A69251A001BD610 /* opencv-facerec.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "opencv-facerec.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		8BDDCA62108803A728EB4810 /* libPods-opencv-facerec.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-opencv-facerec.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC0953911E4C087D0091BCC3 /* sdmSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = sdmSDK.framework; sourceTree = "<group>"; };
+		CC09542C1E4C258D0091BCC3 /* util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
+		CC09542D1E4C26400091BCC3 /* util.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = util.mm; sourceTree = "<group>"; };
 		CC30F3621E486DB4008157CB /* KCFTrackerSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = KCFTrackerSDK.framework; sourceTree = "<group>"; };
+		CC30F4C11E4B0FD4008157CB /* sdmSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = sdmSDK.framework; path = "/Users/kevinhuang/Documents/XcodeWorkspace/github/iOS-OpenCV-FaceRec/sdmSDK.framework"; sourceTree = "<absolute>"; };
+		CC30F4C51E4B1603008157CB /* roboman-landmark-model.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "roboman-landmark-model.bin"; sourceTree = "<group>"; };
 		CC7BD2EA1E3097B1005900E6 /* SeetaFaceDetectSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SeetaFaceDetectSDK.framework; sourceTree = "<group>"; };
 		CC7BD2F41E30A248005900E6 /* seeta_fd_frontal_v1.0.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = seeta_fd_frontal_v1.0.bin; path = FaceRec/seeta_fd_frontal_v1.0.bin; sourceTree = "<group>"; };
 		CC7BD3221E30BB3D005900E6 /* SeetaFaceAlignmentSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SeetaFaceAlignmentSDK.framework; sourceTree = "<group>"; };
@@ -86,6 +94,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC30F4C21E4B0FD4008157CB /* sdmSDK.framework in Frameworks */,
 				CC7BD2EB1E3097B1005900E6 /* SeetaFaceDetectSDK.framework in Frameworks */,
 				CC30F3631E486DB4008157CB /* KCFTrackerSDK.framework in Frameworks */,
 				CC7BD3291E30CCFE005900E6 /* SeetaFaceAlignmentSDK.framework in Frameworks */,
@@ -99,6 +108,7 @@
 		1FAC551379DD0917CC2BA698 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				CC0953911E4C087D0091BCC3 /* sdmSDK.framework */,
 				CC30F3621E486DB4008157CB /* KCFTrackerSDK.framework */,
 				CC7BD3221E30BB3D005900E6 /* SeetaFaceAlignmentSDK.framework */,
 				CC7BD2EA1E3097B1005900E6 /* SeetaFaceDetectSDK.framework */,
@@ -141,6 +151,8 @@
 				871018251A841928000CEDBD /* FJFaceDetector.mm */,
 				871018281A841928000CEDBD /* FJFaceRecognizer.h */,
 				871018291A841928000CEDBD /* FJFaceRecognizer.mm */,
+				CC09542C1E4C258D0091BCC3 /* util.h */,
+				CC09542D1E4C26400091BCC3 /* util.mm */,
 			);
 			name = "OpenCV Wrappers";
 			sourceTree = "<group>";
@@ -169,6 +181,7 @@
 		872C48DE1A69251A001BD610 = {
 			isa = PBXGroup;
 			children = (
+				CC30F4C51E4B1603008157CB /* roboman-landmark-model.bin */,
 				CC7BD3271E30CC77005900E6 /* seeta_fa_v1.1.bin */,
 				CC7BD2F41E30A248005900E6 /* seeta_fd_frontal_v1.0.bin */,
 				8710181D1A841928000CEDBD /* FaceRec */,
@@ -265,6 +278,7 @@
 				871018341A841928000CEDBD /* LaunchScreen.xib in Resources */,
 				8710183B1A841928000CEDBD /* Images.xcassets in Resources */,
 				8710183C1A841928000CEDBD /* Info.plist in Resources */,
+				CC30F4C61E4B1603008157CB /* roboman-landmark-model.bin in Resources */,
 				871018351A841928000CEDBD /* Main.storyboard in Resources */,
 				8710183A1A841928000CEDBD /* haarcascade_frontalface_alt2.xml in Resources */,
 				871018391A841928000CEDBD /* haarcascade_eye_tree_eyeglasses.xml in Resources */,
@@ -333,6 +347,7 @@
 				871018381A841928000CEDBD /* FJFaceRecognizer.mm in Sources */,
 				8710183E1A841928000CEDBD /* UIImage+OpenCV.mm in Sources */,
 				871018331A841928000CEDBD /* AppDelegate.m in Sources */,
+				CC09542E1E4C26400091BCC3 /* util.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -440,17 +455,25 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 1986BAD679DE6E19B4FAF424 /* Pods-opencv-facerec.debug.xcconfig */;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = ZA7D78YAF9;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/sdmSDK.framework/Headers",
+					"$(inherited)",
+					"\"${PODS_ROOT}/Headers/Public\"",
+					"\"${PODS_ROOT}/Headers/Public/OpenCV\"",
+				);
 				INFOPLIST_FILE = "$(SRCROOT)/FaceRec/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "seetaface.opencv-facerec";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/sdmSDK.framework/Headers";
 			};
 			name = Debug;
 		};
@@ -458,17 +481,25 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 6358370C65B537E4894DEFF9 /* Pods-opencv-facerec.release.xcconfig */;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = ZA7D78YAF9;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/sdmSDK.framework/Headers",
+					"$(inherited)",
+					"\"${PODS_ROOT}/Headers/Public\"",
+					"\"${PODS_ROOT}/Headers/Public/OpenCV\"",
+				);
 				INFOPLIST_FILE = "$(SRCROOT)/FaceRec/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "seetaface.opencv-facerec";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "$(SRCROOT)/sdmSDK.framework/Headers";
 			};
 			name = Release;
 		};
